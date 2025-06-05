@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
 import java.time.Year;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -293,5 +294,92 @@ public class Person {
 
         return true;
     }
+    
+private int getDemeritPoints() {
+        int totalPoints = 0;
+        LocalDate now = LocalDate.now();
+        LocalDate twoYearsAgo = now.minusYears(2); //get points from 2 years ago to now
 
+        for (HashMap.Entry<LocalDate, Integer> entry : demeritPoints.entrySet()) {
+            LocalDate offenseDate = entry.getKey();
+            if (!offenseDate.isBefore(twoYearsAgo)) { //if entry in hashmap is before two years ago, add to total points
+                totalPoints += entry.getValue();
+            }
+        }
+
+        return totalPoints;
+    }
+
+    public String addDemeritPoints(int point, String offenseDate) {
+        //TODO: This method adds demerit points for a given person in a TXT file.
+        //Condition 1: The format of the date of the offense should follow the following format: DD-MM-YYYY. Example: 15-11-1990
+        //Condition 2: The demerit points must be a whole number between 1-6
+        //Condition 3: If the person is under 21, the isSuspended variable should be set to true if the total demerit points within two years exceed 6.
+        //If the person is over 21, the isSuspended variable should be set to true if the total demerit points within two years exceed 12.
+        //Instruction: If the above conditions and any other conditions you may want to consider are met, the demerit points for a person should be inserted into the TXT file,
+        //and the addDemerit Points function should return "Success". Otherwise, the addDemeritPoints function should return "Failed".
+
+        //condition 1
+        boolean dateCheck = checkDate(offenseDate);
+        if (!dateCheck) {
+            return "Failed";
+        }
+
+        //condition 2
+        if (point < 1 || point > 6) {
+            return "Failed";
+        }
+
+        //convert date in string form to LocalDate object
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+        LocalDate date = LocalDate.parse(offenseDate, formatter);
+        //add to hash map
+        demeritPoints.put(date, point);
+
+        int birthYear = Integer.parseInt(birthDate.split("-")[2]);
+        int currentYear = Year.now().getValue();
+        int age = currentYear - birthYear;
+
+        int totalPoints = getDemeritPoints(); //get points in the last 2 years only
+
+        //check age, and suspend depending on requirement
+        if (age < 21 && totalPoints > 6) {
+            isSuspended = true;
+        } else if (age >= 21 && totalPoints > 12) {
+            isSuspended = true;
+        }
+
+        Path filePath = Paths.get("person.txt");
+
+        try {
+            List<String> lines = Files.readAllLines(filePath);
+            ArrayList<String> newLines = new ArrayList<>(lines);
+
+            for (int i = 0; i < lines.size(); ) {
+                if (i + 1 >= lines.size()) break;
+
+                String idLine = lines.get(i + 1);
+                String id = idLine.replace("ID: ", "");
+
+                if (personID.equals(id)) {
+                    //write a new history line to update change
+                    newLines.set(i + 4, "Demerit History: " + buildDemeritHistory());
+                    break;
+                }
+
+                i += 6;
+            }
+
+            try {
+                Files.write(filePath, newLines, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+                return "Failed";
+            }
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+        }
+
+        return "Success";
+    }
 }
