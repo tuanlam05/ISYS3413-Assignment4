@@ -4,6 +4,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDate;
+import java.time.Year;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -179,4 +181,102 @@ public class Person {
 
         return true;
     }
+
+    public boolean updatePersonalDetails(String updatedId, String updatedFirstName, String updatedLastName, String updatedAddress, String updatedBirthDate) {
+        //TODO: This method allows updating a given person's ID, firstName, lastName, address and birthday in a TXT file.
+        //Changing personal details will not affect their demerit points or the suspension status.
+        //All relevant conditions discussed for the addPerson function also need to be considered and checked in the updatePerson function.
+        //Condition 1: If a person is under 18, their address cannot be changed.
+        //Condition 2: If a person's birthday is going to be changed, then no other personal detail (i.e, person's ID, firstName, lastName, address) can be changed.
+        //Condition 3: If the first character/digit of a person's ID is an even number, then their ID cannot be changed.
+        //Instruction: If the Person's updated information meets the above conditions and any other conditions you may want to consider,
+        //the Person's information should be updated in the TXT file with the updated information, and the updatePersonalDetails function should return true.
+        //Otherwise, the Person's updated information should not be updated in the TXT file, and the updatePersonalDetails function should return false.
+
+        try {
+            Path filePath = Paths.get("person.txt");
+
+            List<String> lines = Files.readAllLines(filePath); //read from file
+            ArrayList<String> newLines = new ArrayList<>(lines); //create duplicate to override later
+
+            boolean birthDateChanged = false;
+
+            for (int i = 0; i < lines.size(); ) {
+                String idLine = lines.get(i + 1);
+
+                String id = idLine.replace("ID: ", "");
+
+                if (id.equals(personID)) {
+                    //check birthdate
+                    if (updatedBirthDate != null) {
+                        //check birthdate format
+                        boolean dateCheck = checkDate(updatedBirthDate);
+                        if (dateCheck) {
+                            birthDate = updatedBirthDate;
+                            newLines.set(i + 3, "\nBirth Date: " + birthDate);
+
+                            i += 6;
+                            continue; //skip if birthdate is updated
+                        }
+                    }
+
+                    //check id
+                    if (updatedId != null) {
+                        int firstChar = personID.charAt(0);
+                        if (firstChar % 2 != 0) { //cant be even number
+                            boolean idCheck = checkID(updatedId);
+                            if (idCheck) {
+                                personID = updatedId;
+                                newLines.set(i + 1, "\nID: " + personID);
+                            }
+                        }
+                    }
+
+                    //check address
+                    if (updatedAddress != null) {
+                        int birthYear = Integer.parseInt(birthDate.split("-")[2]);
+                        int currentYear = Year.now().getValue();
+
+                        if ((currentYear - birthYear) >= 18) { //older than 18
+                            boolean addressCheck = checkAddress(updatedAddress);
+                            if (addressCheck) {
+                                address = updatedAddress;
+                                newLines.set(i + 2, "\nAddress: " + address);
+                            }
+                        }
+                    }
+
+                    //check name
+                    if (updatedFirstName != null || updatedLastName != null) {
+                        if (updatedFirstName != null) {
+                            firstName = updatedFirstName;
+                        }
+
+                        if (updatedLastName != null) {
+                            lastName = updatedLastName;
+                        }
+
+                        newLines.set(i, "Name: " + firstName + " " + lastName);
+                    }
+
+                    break;
+                }
+
+                i += 6; //including the empty line
+            }
+
+            try {
+                Files.write(filePath, newLines, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+                return false;
+            }
+        } catch (IOException e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+
+        return true;
+    }
+
 }
