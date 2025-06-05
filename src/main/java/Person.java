@@ -131,11 +131,13 @@ public class Person {
             List<String> lines = Files.readAllLines(filePath);
 
             for (int i = 0; i < lines.size(); ) {
+                if (i + 1 >= lines.size()) break;
+
                 String idLine = lines.get(i + 1);
                 String id = idLine.replace("ID: ", "");
 
-                if (personID.equals(id)) {//if theres already id in file, return false
-                    return false;
+                if (personID.equals(id)) {//if theres already id in file, return true
+                    return true;
                 }
 
                 i += 6;
@@ -199,9 +201,17 @@ public class Person {
             List<String> lines = Files.readAllLines(filePath); //read from file
             ArrayList<String> newLines = new ArrayList<>(lines); //create duplicate to override later
 
+            if (updatedBirthDate != null && (
+                            updatedId != null ||
+                            updatedFirstName != null ||
+                            updatedLastName != null ||
+                            updatedAddress != null)) return false;
+
             boolean birthDateChanged = false;
 
             for (int i = 0; i < lines.size(); ) {
+                if (i + 1 >= lines.size()) break;
+
                 String idLine = lines.get(i + 1);
 
                 String id = idLine.replace("ID: ", "");
@@ -212,6 +222,7 @@ public class Person {
                         //check birthdate format
                         boolean dateCheck = checkDate(updatedBirthDate);
                         if (dateCheck) {
+                            birthDateChanged = true;
                             birthDate = updatedBirthDate;
                             newLines.set(i + 3, "\nBirth Date: " + birthDate);
 
@@ -220,43 +231,47 @@ public class Person {
                         }
                     }
 
-                    //check id
-                    if (updatedId != null) {
-                        int firstChar = personID.charAt(0);
-                        if (firstChar % 2 != 0) { //cant be even number
-                            boolean idCheck = checkID(updatedId);
-                            if (idCheck) {
-                                personID = updatedId;
-                                newLines.set(i + 1, "\nID: " + personID);
+                    if (!birthDateChanged) {
+                        //check id
+                        if (updatedId != null) {
+                            int firstChar = personID.charAt(0);
+                            if (firstChar % 2 != 0) { //cant be even number
+                                boolean idCheck = checkID(updatedId);
+                                if (idCheck) {
+                                    personID = updatedId;
+                                    newLines.set(i + 1, "\nID: " + personID);
+                                }
                             }
                         }
-                    }
 
-                    //check address
-                    if (updatedAddress != null) {
-                        int birthYear = Integer.parseInt(birthDate.split("-")[2]);
-                        int currentYear = Year.now().getValue();
+                        //check address
+                        if (updatedAddress != null) {
+                            int birthYear = Integer.parseInt(birthDate.split("-")[2]);
+                            int currentYear = Year.now().getValue();
 
-                        if ((currentYear - birthYear) >= 18) { //older than 18
-                            boolean addressCheck = checkAddress(updatedAddress);
-                            if (addressCheck) {
-                                address = updatedAddress;
-                                newLines.set(i + 2, "\nAddress: " + address);
+                            if ((currentYear - birthYear) >= 18) { //older than 18
+                                boolean addressCheck = checkAddress(updatedAddress);
+                                if (addressCheck) {
+                                    address = updatedAddress;
+                                    newLines.set(i + 2, "\nAddress: " + address);
+                                }
+                            } else {
+                                return false;
                             }
                         }
-                    }
 
-                    //check name
-                    if (updatedFirstName != null || updatedLastName != null) {
-                        if (updatedFirstName != null) {
-                            firstName = updatedFirstName;
+                        //check name
+                        if (updatedFirstName != null || updatedLastName != null) {
+                            if (updatedFirstName != null) {
+                                firstName = updatedFirstName;
+                            }
+
+                            if (updatedLastName != null) {
+                                lastName = updatedLastName;
+                            }
+
+                            newLines.set(i, "Name: " + firstName + " " + lastName);
                         }
-
-                        if (updatedLastName != null) {
-                            lastName = updatedLastName;
-                        }
-
-                        newLines.set(i, "Name: " + firstName + " " + lastName);
                     }
 
                     break;
