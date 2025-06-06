@@ -127,3 +127,4 @@ public class PersonTest{
         String result = person.addDemeritPoints(10, "15-11-2023");
         assertEquals("Failed", result);
     }
+}
